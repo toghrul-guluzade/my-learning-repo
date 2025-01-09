@@ -1,7 +1,7 @@
 import string
 
 
-with open('files/common_passwords.txt', 'r') as file:
+with open('files\common_passwords.txt', 'r') as file:
   common_passwords = file.read()
 
 

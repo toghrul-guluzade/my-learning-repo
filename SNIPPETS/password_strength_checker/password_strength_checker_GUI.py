@@ -10,10 +10,10 @@ ASSETS_PATH = OUTPUT_PATH / Path(r"files")
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
-
+common_passwords_file = ASSETS_PATH / "common_passwords.txt"
 # Load common passwords list
 try:
-    with open('files\common_passwords.txt', 'r') as file:
+    with open(common_passwords_file, 'r') as file:
         common_passwords = file.read().splitlines()
 except FileNotFoundError:
     common_passwords = []
