@@ -1,40 +1,57 @@
-import threading
 import socket
+from cryptography.fernet import Fernet
+import csv
+import os
 
-host = '192.168.1.69'
-port = 12345
+if not os.path.exists("chatting//key.txt"):
+  key = Fernet.generate_key()
+  with open("chatting//key.txt", "wb") as file:
+    file.write(key)
 
-server =  socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-server.bind((host, port))
-server.listen()
-print(f"Server is listening on {host}:{port}")
+  with open("chatting//key.txt", "rb") as file:
+    key = file.read()
+else:
+  with open("chatting//key.txt", "rb") as file:
+    key = file.read()
 
-clients = []
-aliases = []
+def userSignUp ():
+  username = input("Enter your username: ")
+  password = Fernet(key).encrypt(input("Enter your password: ").encode())
+  with open ("chatting//users.csv", "a", newline="") as file:
+    writer = csv.DictWriter(file, fieldnames=["username", "password"])
+    if file.tell() == 0: writer.writeheader()
+    writer.writerow({"username": username, "password": password.decode()})
 
-def broadcast(message):
-    for client in clients:
-        client.send(message)
 
-def handle_client(client):
-    while True:
-        try:
-            message = client.recv(1024)
-            broadcast(message)
-        except:
-            index = clients.index(client)
-            clients.remove(client)
-            client.close()
-            alias = aliases[index]
-            broadcast(f"{alias} has left the chat room!".encode('utf-8'))
-            aliases.remove(alias)
-            break
-        
+def userSignIn():
+  username = input("Enter your username: ")
+  password = input("Enter your password: ").encode()
+  with open ("chatting//users.csv", "r") as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+      if row["username"] == username:
+        print(row["password"])
+        print(row["password"].encode())
+        stored_password = Fernet(key).decrypt(row["password"].encode())
+        #print(Fernet(key).decrypt(password))   #I can get a correct output here
+       # print(Fernet(key).decrypt(stored_password))   #it gives me an error here
+       # print(password)
+      if stored_password == password:
+        print("Welcome, ", username)
+        break
 
-def receive():
-    while True:
-        print("Server is running and listening for connections")
-        client, address = server.accept()
-        print(f"Connection is established with {str(address)}")
-        client.send('alias'.encode('utf-8'))
-        alias = client.recv(1024)
+
+    
+
+#s = socket.socket()
+#port = 12345
+#s.connect(('192.168.1.69', port))
+#print(s.recv(1024))
+#s.close()
+
+if __name__ == "__main__":
+  condition = input("Do you want to sign up(0) or sign in?(1): ")
+  if condition == "0":
+    userSignUp()
+  elif condition == "1":    
+    userSignIn()
