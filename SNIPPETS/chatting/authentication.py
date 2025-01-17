@@ -2,6 +2,10 @@ from cryptography.fernet import Fernet
 import csv
 import os
 
+
+#This file contains functions for user authentication
+
+#Generate a key for encryption
 if not os.path.exists("chatting//key.txt"):
   key = Fernet.generate_key()
   with open("chatting//key.txt", "wb") as file:
@@ -13,6 +17,7 @@ else:
   with open("chatting//key.txt", "rb") as file:
     key = file.read()
 
+#Function to sign up a user
 def userSignUp (username, password):
   password = Fernet(key).encrypt(password.encode())
   with open ("chatting//users.csv", "a", newline="") as file:
@@ -21,7 +26,7 @@ def userSignUp (username, password):
     writer.writerow({"username": username, "password": password.decode()})
   return True
 
-
+#Function to sign in a user
 def userSignIn(username, password):
     password = password.encode()
     found = False  # Add a flag to track if user is found

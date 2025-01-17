@@ -5,29 +5,29 @@ import authentication as auth
 import socket
 import threading
 
-connected_clients = {}
+connected_clients = {} # Dictionary to store connected clients and lively updates
 
+#Function to handle each client
 def handle_client(client_socket, client_address):
   print("Connection from: ", client_address)
-  client_socket.send(b"Welcome to the server")
-  #Receive Message from client
-  client_socket.settimeout(300)
+  client_socket.send(b"Welcome to the server") # Send welcome message to client
+  client_socket.settimeout(300) # Set timeout for the connection
   try:
     while True:
       try:
-        message = client_socket.recv(1024).decode()
+        message = client_socket.recv(1024).decode() # Receive message from client
         if not message:  # Client disconnected
             print(f"Client {client_address} disconnected.")
             break
-        print("Client: ", message)
+        print("Client: ", message) # Print message from client in case of connection input
 
-        for username, ip in list(connected_clients.items()):
+        for username, ip in list(connected_clients.items()): # Remove client from connected clients if they time out
           if ip == client_address[0]:
             del connected_clients[username]
             print(f"Removed {username} from connected clients")
             break
 
-        if message == "auth":
+        if message == "auth": 
             auth_check = authentication(client_socket)
             if auth_check:
                 options(client_socket, auth_check)
