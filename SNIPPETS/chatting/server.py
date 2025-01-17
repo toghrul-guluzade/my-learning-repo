@@ -3,12 +3,49 @@ import csv
 import os
 import authentication as auth
 import socket
+import threading
 
-#s = socket.socket()
-#port = 12345
-#s.connect(('192.168.1.69', port))
-#print(s.recv(1024))
-#s.close()
+connected_clients = {}
+
+def handle_client(client_socket, client_address):
+  print("Connection from: ", client_address)
+  client_socket.send(b"Welcome to the server")
+  #Receive Message from client
+  client_socket.settimeout(300)
+  try:
+    while True:
+      try:
+        message = client_socket.recv(1024).decode()
+        if not message:  # Client disconnected
+            print(f"Client {client_address} disconnected.")
+            break
+        print("Client: ", message)
+
+        for username, ip in list(connected_clients.items()):
+          if ip == client_address[0]:
+            del connected_clients[username]
+            print(f"Removed {username} from connected clients")
+            break
+
+        if message == "auth":
+            auth_check = authentication(client_socket)
+            if auth_check:
+                options(client_socket, auth_check)
+        else:
+            client_socket.send(b"Invalid input. Disconnecting...")
+            break
+      except socket.timeout:
+        print(f"Client {client_address} timed out. Disconnecting...")
+        for username, ip in list(connected_clients.items()):
+          if ip == client_address[0]:
+            del connected_clients[username]
+            print(f"Removed {username} from connected clients")
+        break
+            
+  except Exception as e:
+        print(f"Error handling client {client_address}: {e}")
+
+
 
 def authentication(client_socket):
   client_socket.send(b"Do you want to sign up(0) or sign in?(1): ")
@@ -28,30 +65,52 @@ def authentication(client_socket):
     password = client_socket.recv(1024).decode()
     if auth.userSignIn(username, password):
       client_socket.send(b"User signed in")
+      client_ip = client_socket.getpeername()[0]
+      connected_clients.update({username: client_ip})
+      print(connected_clients)
+      return True
     else: 
       client_socket.send(b"Invalid credentials")
   else:
     client_socket.send(b"Invalid input. Disconnecting...")
     client_socket.close()
+    return False
+
+def options(client_socket, auth_check):
+  if auth_check == True:
+    client_socket.send(b"Options: \n1. List the active users\n2. Send a message to a user\n3. Send a message to all users\n4. Sign out\nEnter your choice: ")
+    choice = client_socket.recv(1024).decode()
+    if choice == "1":
+      client_socket.send(str(connected_clients).encode())
+    elif choice == "2":
+      client_socket.send(b"Enter the username of the user you want to send a message to: ")
+    elif choice == "3":
+      broadcast_message = True
+    elif choice == "4":
+      print("Signing out")
+    else:
+      client_socket.send(b"Invalid input. Disconnecting...")
+      client_socket.close()
+  
+def start_server():
+  while True:
+    client_socket, client_address = server_socket.accept()
+    # Create new thread for each client
+    client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+    client_thread.daemon = True
+    client_thread.start()
     
 if __name__ == "__main__":
   
+
   server_socket = socket.socket()
-  port = 12345
-  server_socket.bind(('192.168.1.68', port))
+  server_ip = '192.168.1.68'
+  port = 53147
+
+  server_socket.bind((server_ip, port))
   server_socket.listen(5)
   print("Server is up and running")
+  print(connected_clients)
 
-  while True:
-    client_socket, client_address = server_socket.accept()
-    print("Connection from: ", client_address)
-    client_socket.send(b"Welcome to the server")
-    #Receive Message from client
-    message = client_socket.recv(1024).decode()
-    print("Client: ", message)
-
-    if message == "auth":
-      authentication(client_socket)
-    else: 
-      client_socket.send(b"Invalid input. Disconnecting...")
-      client_socket.close()
+  start_server()
+  
